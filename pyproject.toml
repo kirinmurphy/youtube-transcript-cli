@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yt-transcript-cli"
+version = "0.1.2"
+description = "Fetch YouTube video and playlist transcripts from the command line"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "kirinmurphy" },
+]
+keywords = ["youtube", "transcript", "subtitles", "cli", "playlist"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Utilities",
+]
+dependencies = [
+    "youtube-transcript-api>=1.2.3",
+    "requests>=2.28.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/kirinmurphy/youtube-transcript-cli"
+Repository = "https://github.com/kirinmurphy/youtube-transcript-cli.git"
+Issues = "https://github.com/kirinmurphy/youtube-transcript-cli/issues"
+
+[project.scripts]
+yt-transcript-cli = "yt_transcript.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
