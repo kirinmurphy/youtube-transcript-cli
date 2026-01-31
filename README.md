@@ -11,6 +11,17 @@ Install from PyPI:
 pip install yt-transcript-cli
 ```
 
+### Troubleshooting: `pip` install not working
+
+On some systems (especially macOS), `pip install` may fail or the installed command may not be available on your PATH. This is because modern Python environments restrict installing packages globally to avoid conflicts with system packages.
+
+Use [pipx](https://pipx.pypa.io/) instead, which installs CLI tools in isolated environments:
+
+```bash
+brew install pipx   # macOS
+pipx install yt-transcript-cli
+```
+
 ### Install from GitHub
 
 ```bash
