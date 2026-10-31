@@ -1,12 +1,12 @@
 ---
 id: 3qznl8b1
-priority: medium
+priority: none
 next_action: Run /plan-execute to implement timestamped JSON exports and cached-file path reporting.
 blocked_by: []
 depends_on: []
 related: []
 reviewed_commit: 5b5a3ba9d32bfe1f02ff59e7cb7fcd9d8bb02cf5
-worktree:
+worktree: transcript-timestamped-json-export
 ---
 
 # Timestamped exports for research workflows
