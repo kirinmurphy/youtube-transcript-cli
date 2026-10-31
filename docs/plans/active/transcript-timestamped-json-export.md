@@ -200,6 +200,14 @@ None. Independent validation pass 1 found no `fix`, `escalate`, or `base` findin
 - The code review covered format propagation, serialization, cache separation, stdout ordering, backward compatibility, failures, delays, cohesion, state, and affected comments.
 - Documentation review passed against technical-writing Core Writing Philosophy, `doc-shapes.md`, `section-guidance.md`, `representation.md`, `anti-patterns.md`, `review-loop.md`, supplied documentation requirements, and applicable paired skills. The existing README structure remains appropriate; documentation-set organization rules do not apply.
 - Base failures: none reported by the Validator. Installed-command verification remains the one explicit Not tested entry.
-- Canonical completion preflight passed all six checks before recording this review: assigned worktree, checked tasks outside Not tested, empty blockers, clean worktree, feature commit, and review-validator requirements. It will be rerun after this record is committed.
+- Canonical completion preflight passed all six checks before recording this review: assigned worktree, checked tasks outside Not tested, empty blockers, clean worktree, feature commit, and review-validator requirements. It passed again after the validation record was committed, and the submit command reran it successfully.
 - Plan validation reports zero blocking findings and one advisory `UNCONFIRMED_NOT_TESTED` entry.
 - No human approval has been requested or recorded. Implementation completion does not constitute human approval.
+
+
+### Lifecycle handoff
+
+- Submit transition: `f515f338e1415446ca8c96db052fc0aca0f7619c`; APPROVED with all six transition checks passing. The primary lifecycle copy is now in `docs/plans/review/transcript-timestamped-json-export.md`; this worktree's active-path copy remains authoritative for implementation details until base synchronization during review.
+- Post-submit worktree validation: zero blocking findings; one advisory `UNCONFIRMED_NOT_TESTED`.
+- Post-submit primary validation: zero blocking findings; advisories `UNCONFIRMED_NOT_TESTED` and `PLAN_EDITED_OUTSIDE_WORKTREE`. The submit commit is an exact plan-only rename (`R100`), with identical before/after blob `d50feeb52dcf3ebb3bdb6563f3a3f7e60806bc16`. Inspection of the installed plan tool's `checkOutsideEdits()` confirms that it checks the new review path at the merge base, where that path does not exist yet, and does not recognize the unchanged primary blob in this case. No primary plan body was edited and no merge was attempted. Base synchronization belongs to `/plan-review`.
+- The feature worktree is clean after committing its records. Unrelated untracked plan-suite scaffolding in the primary checkout was preserved. Nothing was pushed, merged, or published.
