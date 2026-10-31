@@ -1,24 +1,28 @@
 #!/usr/bin/env python3
 """
-CLI tool to fetch YouTube transcripts and save to text files.
+CLI tool to fetch YouTube transcripts and save to text or timestamped JSON files.
 
 Usage:
     # Single URL
-    yt-transcript "https://www.youtube.com/watch?v=VIDEO_ID"
+    yt-transcript-cli "https://www.youtube.com/watch?v=VIDEO_ID"
+
+    # Timestamped segments
+    yt-transcript-cli --format json --quiet "https://www.youtube.com/watch?v=VIDEO_ID"
 
     # Multiple URLs
-    yt-transcript "URL1" "URL2" "URL3"
+    yt-transcript-cli "URL1" "URL2" "URL3"
 
     # Playlist URL
-    yt-transcript "https://www.youtube.com/playlist?list=PLAYLIST_ID"
+    yt-transcript-cli "https://www.youtube.com/playlist?list=PLAYLIST_ID"
 
     # From file (one URL per line)
-    yt-transcript -f urls.txt
+    yt-transcript-cli -f urls.txt
 
     # Interactive REPL mode
-    yt-transcript -i
+    yt-transcript-cli -i
 """
 import argparse
+import json
 import sys
 import time
 from pathlib import Path
@@ -66,9 +70,16 @@ Supported URL formats:
 """
 
 
-def process_video(video_id: str, lang: str | None, output_dir: Path, quiet: bool, skip_existing: bool = True) -> str:
+def process_video(
+    video_id: str,
+    lang: str | None,
+    output_dir: Path,
+    quiet: bool,
+    skip_existing: bool = True,
+    output_format: str = "text",
+) -> str:
     """
-    Process a single video ID and save transcript to file.
+    Save a video transcript as text or a JSON segment array; print saved or cached paths.
     Returns 'success', 'skipped', or 'failed'.
     """
     def log(msg: str):
@@ -85,12 +96,14 @@ def process_video(video_id: str, lang: str | None, output_dir: Path, quiet: bool
         if not quiet:
             print("\r" + " " * 60 + "\r", end="", file=sys.stderr)
 
-    output_path = output_dir / f"transcript_{video_id}.txt"
+    suffix = "json" if output_format == "json" else "txt"
+    output_path = output_dir / f"transcript_{video_id}.{suffix}"
 
     # Check if transcript already exists
     if skip_existing and output_path.exists():
         log(f"Video ID: {video_id}")
         log(f"Skipped (already exists): {output_path}")
+        print(str(output_path))
         return 'skipped'
 
     log(f"Video ID: {video_id}")
@@ -112,7 +125,8 @@ def process_video(video_id: str, lang: str | None, output_dir: Path, quiet: bool
         return 'failed'
 
     progress("Saving file...")
-    output_path.write_text(text, encoding="utf-8")
+    content = json.dumps(segments, ensure_ascii=False, indent=2) if output_format == "json" else text
+    output_path.write_text(content, encoding="utf-8")
     progress_done()
     log(f"Saved to: {output_path}")
     print(str(output_path))
@@ -167,10 +181,11 @@ def process_urls(
     lang: str | None,
     output_dir: Path,
     quiet: bool,
-    delay: float = DEFAULT_DELAY
+    delay: float = DEFAULT_DELAY,
+    output_format: str = "text",
 ) -> tuple[int, int, int, int]:
     """
-    Process a list of URLs (expanding playlists).
+    Process URLs (expanding playlists) in the selected text or JSON format.
     Returns (success_count, skipped_count, total_videos, failed_urls).
     """
     def log(msg: str):
@@ -199,7 +214,7 @@ def process_urls(
         if total > 1:
             log(f"[{i}/{total}]")
 
-        result = process_video(video_id, lang, output_dir, quiet)
+        result = process_video(video_id, lang, output_dir, quiet, output_format=output_format)
         if result == 'success':
             success_count += 1
         elif result == 'skipped':
@@ -221,9 +236,15 @@ def process_urls(
     return success_count, skipped_count, total, failed_urls
 
 
-def run_repl(lang: str | None, output_dir: Path, quiet: bool, delay: float = DEFAULT_DELAY):
+def run_repl(
+    lang: str | None,
+    output_dir: Path,
+    quiet: bool,
+    delay: float = DEFAULT_DELAY,
+    output_format: str = "text",
+):
     """
-    Run interactive REPL mode for pasting URLs.
+    Run interactive REPL mode, saving transcripts in the selected text or JSON format.
     """
     print("YouTube Transcript Fetcher - Interactive Mode")
     print("=" * 50)
@@ -283,7 +304,7 @@ def run_repl(lang: str | None, output_dir: Path, quiet: bool, delay: float = DEF
             print(f"\nProcessing {len(pending_urls)} URL(s)...")
             print("-" * 30)
 
-            success, skipped, total, failed_urls = process_urls(pending_urls, lang, output_dir, quiet, delay)
+            success, skipped, total, failed_urls = process_urls(pending_urls, lang, output_dir, quiet, delay, output_format)
 
             print("-" * 30)
             parts = []
@@ -317,7 +338,7 @@ def run_repl(lang: str | None, output_dir: Path, quiet: bool, delay: float = DEF
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Fetch YouTube video transcripts and save to text files.",
+        description="Fetch YouTube video transcripts and save to text or timestamped JSON files.",
         epilog="Supports video URLs, playlist URLs, and plain video IDs."
     )
     parser.add_argument(
@@ -340,13 +361,19 @@ def main():
         help=f"Output directory for transcripts (default: {DEFAULT_OUTPUT_DIR})"
     )
     parser.add_argument(
+        "--format",
+        choices=("text", "json"),
+        default="text",
+        help="File format: continuous text or timestamped JSON segments (default: text)"
+    )
+    parser.add_argument(
         "-l", "--lang",
         help="Language code for transcript (e.g., 'en', 'es')"
     )
     parser.add_argument(
         "-q", "--quiet",
         action="store_true",
-        help="Suppress progress messages"
+        help="Suppress progress messages; batch stdout contains saved and cached paths"
     )
     parser.add_argument(
         "-d", "--delay",
@@ -378,13 +405,13 @@ def main():
 
     # Determine mode
     if args.interactive or (not urls and not args.file):
-        run_repl(args.lang, output_dir, args.quiet, args.delay)
+        run_repl(args.lang, output_dir, args.quiet, args.delay, args.format)
     elif not urls:
         print("Error: No URLs provided. Use -i for interactive mode.", file=sys.stderr)
         sys.exit(1)
     else:
         # Batch mode
-        success, skipped, total, failed_urls = process_urls(urls, args.lang, output_dir, args.quiet, args.delay)
+        success, skipped, total, failed_urls = process_urls(urls, args.lang, output_dir, args.quiet, args.delay, args.format)
 
         if (total > 1 or failed_urls > 0 or skipped > 0) and not args.quiet:
             parts = []
