@@ -1,0 +1,146 @@
+---
+id: 3qznl8b1
+priority: medium
+next_action: Run /plan-execute to implement timestamped JSON exports and cached-file path reporting.
+blocked_by: []
+depends_on: []
+related: []
+reviewed_commit: 5b5a3ba9d32bfe1f02ff59e7cb7fcd9d8bb02cf5
+worktree:
+---
+
+# Timestamped exports for research workflows
+
+## Summary
+
+Give research tools timestamped transcript files and a reliable way to locate them on repeated runs. Add `--format json` and print existing file paths when downloads are skipped. Keep this package standalone so Knowledge Researcher can consume it as a dependency.
+
+## Goals
+
+- Preserve each fetched segment's text, start time, duration, and order in JSON exports.
+- Report usable file paths for newly saved and cached transcripts, including with `--quiet`.
+- Preserve default text exports and the existing Python library API.
+
+## Current state
+
+| Area | Repository evidence |
+| --- | --- |
+| Segment data | `src/yt_transcript/core.py`: `fetch_transcript()` returns `to_raw_data()`; its documented fields are `text`, `start`, and `duration`. |
+| Text export | `to_text()` joins segment text; `src/yt_transcript/cli.py` always saves `transcript_{VIDEO_ID}.txt`. |
+| Cache hit | `process_video()` checks whether the output path exists, logs it to stderr, and returns `'skipped'` without printing the path to stdout. |
+| New download | `process_video()` prints its saved path to stdout and returns `'success'`. |
+| Input modes | `main()` passes batch URLs or file input to `process_urls()`; `run_repl()` also calls `process_urls()`. |
+| Verification tooling | The inspected repository files include no test directory, test runner configuration, or CI workflow. `pyproject.toml` declares Python 3.11+ and the runtime dependencies. |
+
+### Repository and related-plan review
+
+The reviewed checkout is `main` at `5b5a3ba9d32bfe1f02ff59e7cb7fcd9d8bb02cf5`; that commit is the current implementation baseline. All lifecycle folders were inspected: this is the only plan document, with no dependency links or overlapping stories to reconcile. There is no related implementation commit or active-story lifecycle drift.
+
+`README.md` owns usage and library documentation; `PUBLISHING.md` covers releases. No separate documentation inventory or repository test, lint, type-check, or health-check command is present in the inspected files.
+
+## Proposed design
+
+### File format and cache contract
+
+Add an argparse option `--format` with choices `text` and `json`, defaulting to `text`. The option chooses the file representation; stdout continues to report paths.
+
+| Selection | File | Contents |
+| --- | --- | --- |
+| Omitted or `--format text` | `transcript_{VIDEO_ID}.txt` | Existing continuous text output |
+| `--format json` | `transcript_{VIDEO_ID}.json` | JSON array of the original segment dictionaries |
+
+Write JSON as UTF-8 using Python's standard `json` module. Preserve numeric timing values, Unicode text, segment order, and any additional segment fields returned by the fetcher. Add no metadata wrapper or new runtime dependency.
+
+Illustrative JSON file contents, not captured output:
+
+```json
+[
+  {"text": "First sentence.", "start": 1.25, "duration": 2.5},
+  {"text": "Next sentence.", "start": 4.0, "duration": 1.75}
+]
+```
+
+Each format has its own cache file. A `.txt` file does not satisfy a JSON request, since it lacks timestamps; fetch the segments and save `.json` when needed. With the existing default `skip_existing=True`, a matching file is reused without fetching or rewriting it. Preserve `skip_existing=False` for callers that explicitly request a rewrite. Preserve the existing check for empty or whitespace-only transcript text before saving either format.
+
+### Paths for automation
+
+For each successful save or matching cache hit, print `str(output_path)` once on stdout. Keep the current relative-or-absolute path convention determined by `--output-dir`; do not change `process_video()`'s status return values or aggregate counters.
+
+Batch automation uses `--quiet`, which already suppresses the batch separator blank lines. With it, stdout must contain one nonempty path line per successful or cached video occurrence, in processing order. Keep progress, skip notices, errors, and batch summaries on stderr. Failed videos emit no path. Preserve current duplicate-input handling and exit statuses, including success when every video is cached.
+
+Proposed invocation after implementation:
+
+```sh
+yt-transcript-cli --format json --quiet --output-dir transcripts "https://www.youtube.com/watch?v=dQw4w9WgXc"
+```
+
+On a successful first run and on a matching cached rerun, stdout identifies `transcripts/transcript_dQw4w9WgXc.json`. The JSON is read from that file. Interactive prompts and summaries remain human-facing; `--quiet` batch mode is the automation contract.
+
+### Ownership and mode propagation
+
+Keep file selection and serialization in `src/yt_transcript/cli.py`, alongside the existing file writer. Pass the selected format from `main()` through `process_urls()` and `run_repl()` to `process_video()`. Append a defaulted format parameter after each function's existing parameters so current calls retain text behavior. Update affected CLI descriptions and docstrings to describe both formats.
+
+`core.py` already supplies the required segments. Preserve `fetch_transcript()`, `to_text()`, and the exports in `src/yt_transcript/__init__.py`.
+
+## Implementation checklist
+
+- [ ] Create `tests/test_cli.py` with temporary output directories, captured streams, and stubbed transcript/playlist fetches. Run focused cases first to establish failures for missing JSON parsing and missing cached-path output.
+- [ ] Add `--format {text,json}` in `main()` and append a defaulted format parameter to `process_urls()`, `run_repl()`, and `process_video()`. Preserve existing positional arguments, including `skip_existing`.
+- [ ] Select the filename suffix and serialize segments inside `process_video()`. Keep the shared empty-text check and text output unchanged.
+- [ ] Print cached paths before returning `'skipped'`. Verify counters, duplicate occurrences, forced rewrites, and delay handling remain compatible.
+- [ ] Complete the acceptance checks below through real parsing, batch processing, and queued interactive input, using temporary files and stubbed network responses.
+- [ ] Update README usage, options, output behavior, cache limitations, and library guidance; reconcile the CLI's module description and help with both formats.
+- [ ] Run the complete CLI regression module in the project environment and check CLI help against README examples.
+
+## Validation
+
+Add `tests/test_cli.py` using standard-library `unittest`, temporary directories, stream capture, and `unittest.mock`. Stub transcript and playlist network boundaries, while exercising real CLI parsing, file serialization, cache files, and stdout. No live YouTube requests are needed for these changes.
+
+| Acceptance case | Required assertion |
+| --- | --- |
+| Default and explicit text | Both save the existing joined text to `.txt`. |
+| JSON round trip | Parsed file equals the supplied segment list, including fractional times, duration, Unicode, and an extra field. |
+| Same-format cache, text and JSON | Existing bytes stay unchanged, fetching is not called, and the path prints once. |
+| Forced rewrite, text and JSON | Calling `process_video()` with `skip_existing=False` replaces matching cached bytes and emits one path. |
+| Cross-format cache | Existing `.txt` does not suppress JSON fetching; existing `.json` does not suppress text fetching. |
+| Quiet batch stdout | A mixed fresh/cached batch emits exactly its ordered path lines, without progress or summaries. |
+| Non-quiet cache hit | The path prints once on stdout, and the skip notice remains on stderr. |
+| All-cached batch | Paths print and `main()` succeeds without fetching transcripts. |
+| Multiple videos, playlist, and URL file | The selected format reaches every resolved video and files use the correct suffix. |
+| Duplicate inputs | Repeated resolved IDs produce repeated ordered path lines, one saved result and subsequent skipped results. |
+| Delay compatibility | Stub `time.sleep`; fresh/failed non-final results retain the configured delay, while skipped and final results add no delay. |
+| Interactive mode | Enter through `main()` with JSON selected, queue a URL, process it, and quit; verify the JSON file. Cover explicit `-i` and implicit interactive entry. |
+| Existing Python calls | Existing positional CLI-helper calls still default to text; `fetch_transcript()`, `to_text()`, and package exports retain their contracts. |
+| Invalid format | argparse rejects it with exit status 2 before fetching or creating an output directory. |
+| Empty or whitespace-only transcript | Processing fails, creates no transcript file, and emits no path in either format. |
+| Fetch failures and mixed outcomes | Failed videos emit no paths; all-failed exits 1 and partial success exits 2. |
+
+Implementation environment setup (Python 3.11+ required; use an equivalent available interpreter if needed):
+
+```sh
+python3.11 -m venv .venv
+.venv/bin/python -m pip install -e .
+```
+
+Implementation verification commands (proposed; the test file and project environment do not exist yet):
+
+```sh
+PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v
+PYTHONPATH=src .venv/bin/python -m yt_transcript.cli --help
+```
+
+Check the updated CLI help and README examples against the implemented parser. Promotion inspection found `python3` at 3.9.6 and an available `python3.11` at 3.11.15; neither has the declared runtime dependencies installed. Environment setup belongs to implementation. Plan-only validation uses the selected plan's `roborepo plans validate <plan> --json` command and a documentation review; implementation tests are not evidence until executed during implementation.
+
+## Documentation impact
+
+`README.md` is the inspected user-facing usage and library reference. Add the format option with its text default, both filename extensions, a labeled JSON segment example, and a quiet batch example showing that fresh and cached results both print paths. Clarify that `fetch_transcript()` already provides timestamped segments to Python callers. Update the behavior section's text-only and skip descriptions accordingly.
+
+## Scope and limitations
+
+Knowledge Researcher integration happens in its own project. This work adds the dependency's export contract; it adds no downstream agent code, packaging changes, new cache metadata, or output formats beyond text and JSON.
+
+The current cache identifies files by video ID alone. Adding a format suffix separates representations but does not distinguish requested languages. Existing files are trusted by existence rather than validated. Preserve those policies here and document that cache reuse does not verify language or file contents. JSON requires a new fetch when only text is cached, so that conversion still depends on upstream availability.
+
+## Open questions
+
+None for the requested scope. Default text compatibility, raw segment arrays, format-specific cache files, and stdout paths follow the requested behavior and existing CLI structure.
