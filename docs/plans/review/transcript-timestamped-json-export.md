@@ -1,7 +1,7 @@
 ---
 id: 3qznl8b1
 priority: none
-next_action: Confirm the installed-command check in a Python 3.11+ environment, then resume human approval.
+next_action: Await explicit human approval of reviewed commit aebb70c5e9eb9468a22ed41583117a180258d05d.
 blocked_by: []
 depends_on: []
 related: []
@@ -185,7 +185,7 @@ The source-module CLI was started for help, the fresh/cache demonstration, and a
 
 ## Not tested
 
-- [ ] Install the package in a Python 3.11+ environment and verify that the installed `yt-transcript-cli --help` exposes `--format {text,json}`. Editable installation and wheel building were blocked by this environment's certificate-file and temporary-directory deletion restrictions; source-module CLI execution and all export behavior checks passed.
+- [x] Install the package in a Python 3.11+ environment and verify that the installed `yt-transcript-cli --help` exposes `--format {text,json}`. Confirmed by the human on 2026-11-02: supplied terminal output shows Python 3.11.15, successful wheel build and installation of yt-transcript-cli 0.1.2 using `python -m pip install .`, and installed help showing the format choices and text default.
 
 ## Review
 
@@ -225,10 +225,16 @@ None. Independent validation pass 1 found no `fix`, `escalate`, or `base` findin
 - Base failures: none established. The build check is environment-blocked, not classified as a code finding or a proven base failure.
 - No implementation fixes were needed. One required Not tested entry remains unconfirmed; final approval was not requested.
 
+### Manual verification resolution — 2026-11-02
+
+- The human supplied terminal output confirming the remaining installation check: Python 3.11.15, successful wheel build and installation from the assigned feature worktree, and installed `yt-transcript-cli --help` displaying `--format {text,json}`. This resolves the earlier environment-blocked check; the earlier attempt records remain historical.
+- Fresh Git reads confirmed clean primary and feature worktrees, unchanged base `14c3120c1343f24c58c0b366177a86d56e7b2bed`, and only plan-record changes since the tested and independently validated implementation at `9465ac8a5e3b26849edc2d18482eecf34b9aa9a8`. The 21 passing tests and clean Validator pass are reused for identical implementation content.
+- All findings and required manual checks are resolved. Review is complete; human approval remains a separate pending decision.
+
 ### Result
-- Status: pending
-- Reviewed implementation commit: 9465ac8a5e3b26849edc2d18482eecf34b9aa9a8
+- Status: complete
+- Reviewed implementation commit: aebb70c5e9eb9468a22ed41583117a180258d05d
 - Base commit: 14c3120c1343f24c58c0b366177a86d56e7b2bed
 
 ### Approval
-- Decision: not requested
+- Decision: requested
