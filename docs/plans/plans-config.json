@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "worktreeRoot": "~/.worktrees",
+  "namespaces": {
+    "transcript": "Transcript fetching, language selection, and text formatting.",
+    "playlist": "Playlist URL handling and expansion into video IDs."
+  }
+}
