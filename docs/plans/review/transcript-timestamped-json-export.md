@@ -1,7 +1,7 @@
 ---
 id: 3qznl8b1
 priority: none
-next_action: Run /plan-review to review the completed JSON export and cached-path implementation.
+next_action: Confirm the installed-command check in a Python 3.11+ environment, then resume human approval.
 blocked_by: []
 depends_on: []
 related: []
@@ -211,3 +211,24 @@ None. Independent validation pass 1 found no `fix`, `escalate`, or `base` findin
 - Post-submit worktree validation: zero blocking findings; one advisory `UNCONFIRMED_NOT_TESTED`.
 - Post-submit primary validation: zero blocking findings; advisories `UNCONFIRMED_NOT_TESTED` and `PLAN_EDITED_OUTSIDE_WORKTREE`. The submit commit is an exact plan-only rename (`R100`), with identical before/after blob `d50feeb52dcf3ebb3bdb6563f3a3f7e60806bc16`. Inspection of the installed plan tool's `checkOutsideEdits()` confirms that it checks the new review path at the merge base, where that path does not exist yet, and does not recognize the unchanged primary blob in this case. No primary plan body was edited and no merge was attempted. Base synchronization belongs to `/plan-review`.
 - The feature worktree is clean after committing its records. Unrelated untracked plan-suite scaffolding in the primary checkout was preserved. Nothing was pushed, merged, or published.
+
+
+### Human-review verification — 2026-11-02
+
+- Base synchronization: `roborepo plans sync-base --json` reported `up-to-date` at `9465ac8a5e3b26849edc2d18482eecf34b9aa9a8`, with base `14c3120c1343f24c58c0b366177a86d56e7b2bed`. The existing merge brought main into the feature branch; the implementation has not landed on main.
+- `PYTHONPATH=src .venv/bin/python -m unittest discover -s tests -v`: all 21 tests passed again on the synchronized result.
+- `PYTHONPATH=src .venv/bin/python -m yt_transcript.cli --help`: exited 0 and exposed `--format {text,json}` and the text default.
+- `git diff --check`: passed. No broader test, lint, type, or health gate is configured in the inspected tracked files.
+- Fresh-context Validator pass 1: clean, with no fix, escalate, or base findings. All 16 acceptance rows map to observable tests covering text compatibility, JSON fidelity, both cache formats, forced rewrites, cross-format fetching, ordered stdout, stderr separation, all-cached success, input modes, duplicates, delays, interactive modes, library calls, invalid formats, empty transcripts, and failures.
+- README matches the implementation's format, cache, automation, and library contracts. CLI serialization and format propagation retain the existing ownership boundaries; core and package exports are unchanged.
+- Installed-command verification remains blocked. An isolated source copy built with `from setuptools.build_meta import build_wheel; build_wheel("../wheel")` failed with `PermissionError` while removing its generated egg-info directory. A retry with elevated execution permission failed identically. No wheel installation or installed-command assertion ran. The earlier pip attempt also encountered restricted certificate-file access; no certificate restrictions were bypassed.
+- Base failures: none established. The build check is environment-blocked, not classified as a code finding or a proven base failure.
+- No implementation fixes were needed. One required Not tested entry remains unconfirmed; final approval was not requested.
+
+### Result
+- Status: pending
+- Reviewed implementation commit: 9465ac8a5e3b26849edc2d18482eecf34b9aa9a8
+- Base commit: 14c3120c1343f24c58c0b366177a86d56e7b2bed
+
+### Approval
+- Decision: not requested
