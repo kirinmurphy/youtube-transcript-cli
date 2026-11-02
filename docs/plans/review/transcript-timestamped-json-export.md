@@ -1,7 +1,7 @@
 ---
 id: 3qznl8b1
 priority: none
-next_action: Await explicit human approval of reviewed commit aebb70c5e9eb9468a22ed41583117a180258d05d.
+next_action: Open and merge the pull request, then run /plan-close.
 blocked_by: []
 depends_on: []
 related: []
@@ -237,4 +237,7 @@ None. Independent validation pass 1 found no `fix`, `escalate`, or `base` findin
 - Base commit: 14c3120c1343f24c58c0b366177a86d56e7b2bed
 
 ### Approval
-- Decision: requested
+- Decision: approved
+- Reviewed implementation commit: aebb70c5e9eb9468a22ed41583117a180258d05d
+- Confirmed by: human
+- Evidence: On 2026-11-02, the human answered "Approve this implementation" to the exact-commit approval question in this chat. All findings and required manual checks were resolved before that answer.
