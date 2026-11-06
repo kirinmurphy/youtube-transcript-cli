@@ -2,30 +2,50 @@
 
 Fetch YouTube video and playlist transcripts from the command line.
 
-## Installation
+## Install or upgrade
 
-Install from PyPI:  
-[pypi.org/project/yt-transcript-cli/](https://pypi.org/project/yt-transcript-cli/)
+This package requires Python 3.11 or newer. Use `pipx` for the simplest installation: it keeps the
+application isolated from the system Python and avoids global package-permission errors.
 
-```bash
-pip install yt-transcript-cli
-```
-
-### Troubleshooting: `pip` install not working
-
-On some systems (especially macOS), `pip install` may fail or the installed command may not be available on your PATH. This is because modern Python environments restrict installing packages globally to avoid conflicts with system packages.
-
-Use [pipx](https://pipx.pypa.io/) instead, which installs CLI tools in isolated environments:
+### First installation on macOS
 
 ```bash
-brew install pipx   # macOS
+brew install pipx
+pipx ensurepath
 pipx install yt-transcript-cli
 ```
 
-### Install from GitHub
+Restart the terminal only if `pipx ensurepath` says the PATH changed. On Linux or Windows, install
+[`pipx` using its platform instructions](https://pipx.pypa.io/stable/how-to/install-pipx.html), then run the
+same `pipx install` command.
+
+### Upgrade to the newest release
+
+Once installed with `pipx`, downloading and installing future releases is one command:
 
 ```bash
-pip install git+https://github.com/kirinmurphy/youtube-transcript-cli.git
+pipx upgrade yt-transcript-cli
+```
+
+### Using pip instead
+
+Use `pip` only when you intentionally manage the Python environment yourself. Confirm that the
+selected interpreter is Python 3.11 or newer, then install or upgrade:
+
+```bash
+python3 --version
+python3 -m pip install --upgrade yt-transcript-cli
+```
+
+If the version check reports Python 3.10 or older, use the recommended `pipx` path instead.
+
+Package releases are available at
+[pypi.org/project/yt-transcript-cli/](https://pypi.org/project/yt-transcript-cli/).
+
+### Install directly from GitHub
+
+```bash
+pipx install git+https://github.com/kirinmurphy/youtube-transcript-cli.git
 ```
 
 Or install locally for development:
@@ -33,7 +53,7 @@ Or install locally for development:
 ```bash
 git clone https://github.com/kirinmurphy/youtube-transcript-cli.git
 cd youtube-transcript-cli
-pip install -e .
+python3 -m pip install -e .
 ```
 
 ## Usage
