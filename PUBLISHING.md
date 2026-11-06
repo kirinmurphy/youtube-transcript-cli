@@ -2,6 +2,22 @@
 
 Step-by-step guide to publishing and updating `yt-transcript-cli` on PyPI.
 
+## Automated release workflow
+
+Run the complete release from a clean, synchronized `main` branch:
+
+```bash
+./scripts/release.sh 0.2.0
+```
+
+The script verifies that the version is new, creates an isolated release environment, runs the
+tests, updates both version declarations, builds and checks the distributions, commits and pushes
+the version bump, uploads to PyPI, and reinstalls the published package with `pipx`. It asks for
+confirmation before making release changes. Pass `--yes` to skip that prompt or `--skip-install`
+to leave the locally installed command unchanged.
+
+The manual steps below remain available for troubleshooting or partial releases.
+
 ## Prerequisites
 
 Install the build and upload tools:
