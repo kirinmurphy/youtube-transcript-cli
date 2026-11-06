@@ -16,6 +16,16 @@ the version bump, uploads to PyPI, and reinstalls the published package with `pi
 confirmation before making release changes. Pass `--yes` to skip that prompt or `--skip-install`
 to leave the locally installed command unchanged.
 
+Store the project-scoped PyPI token in the ignored `.env` file:
+
+```dotenv
+PYPI_API_TOKEN=pypi-your-token-here
+```
+
+Restrict the file to your user with `chmod 600 .env`. The script reads only this setting; it does
+not execute the `.env` file as shell code. If the file or setting is missing, the script asks for
+the token without displaying it. A malformed or duplicate setting stops the release.
+
 The manual steps below remain available for troubleshooting or partial releases.
 
 ## Prerequisites

@@ -103,6 +103,82 @@ for path, (pattern, replacement) in files.items():
 PY
 }
 
+read_pypi_token() {
+    local env_file="$repo_root/.env"
+
+    [[ -f "$env_file" ]] || return 1
+
+    "$python_bin" - "$env_file" <<'PYPI_TOKEN_PARSER'
+from pathlib import Path
+import shlex
+import sys
+
+env_file = Path(sys.argv[1])
+tokens = []
+
+try:
+    lines = env_file.read_text(encoding="utf-8").splitlines()
+except (OSError, UnicodeError) as error:
+    print(f"Could not read {env_file}: {error}", file=sys.stderr)
+    raise SystemExit(2)
+
+for line_number, raw_line in enumerate(lines, 1):
+    line = raw_line.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line.startswith("export "):
+        line = line.removeprefix("export ").lstrip()
+
+    key, separator, raw_value = line.partition("=")
+    if not separator or key.strip() != "PYPI_API_TOKEN":
+        continue
+
+    lexer = shlex.shlex(raw_value, posix=True)
+    lexer.whitespace_split = True
+    lexer.commenters = "#"
+    try:
+        values = list(lexer)
+    except ValueError as error:
+        print(f"Invalid PYPI_API_TOKEN on line {line_number}: {error}", file=sys.stderr)
+        raise SystemExit(2)
+
+    if len(values) != 1:
+        print(f"Invalid PYPI_API_TOKEN on line {line_number}", file=sys.stderr)
+        raise SystemExit(2)
+    tokens.append(values[0])
+
+if not tokens:
+    raise SystemExit(1)
+if len(tokens) != 1:
+    print("PYPI_API_TOKEN must be declared exactly once", file=sys.stderr)
+    raise SystemExit(2)
+if not tokens[0].startswith("pypi-"):
+    print("PYPI_API_TOKEN must start with pypi-", file=sys.stderr)
+    raise SystemExit(2)
+
+print(tokens[0], end="")
+PYPI_TOKEN_PARSER
+}
+
+get_pypi_token() {
+    local token_status
+
+    if pypi_token="$(read_pypi_token)"; then
+        printf 'Using PYPI_API_TOKEN from .env.\n'
+        return
+    else
+        token_status=$?
+    fi
+
+    [[ "$token_status" -eq 1 ]] || fail "Fix PYPI_API_TOKEN in .env before publishing"
+    [[ -t 0 ]] || fail "PYPI_API_TOKEN was not found in .env and no interactive prompt is available"
+
+    printf 'PYPI_API_TOKEN was not found in .env. Enter it now: ' >&2
+    IFS= read -r -s pypi_token
+    printf '\n' >&2
+    [[ "$pypi_token" == pypi-* ]] || fail "PyPI API token must start with pypi-"
+}
+
 confirm_release() {
     [[ "$assume_yes" == true ]] && return
 
@@ -198,6 +274,8 @@ sdist="$artifact_dir/yt_transcript_cli-$version.tar.gz"
 mkdir -p dist
 cp "${wheel_files[0]}" "$sdist" dist/
 
+get_pypi_token
+
 if ! git diff --quiet -- pyproject.toml src/yt_transcript/__init__.py; then
     unexpected_changes="$(git status --porcelain --untracked-files=no \
         | grep -Ev '^ M (pyproject\.toml|src/yt_transcript/__init__\.py)$' || true)"
@@ -212,7 +290,9 @@ if ! git diff --quiet -- pyproject.toml src/yt_transcript/__init__.py; then
 fi
 
 printf 'Uploading %s to PyPI...\n' "$version"
-"$release_python" -m twine upload "${wheel_files[0]}" "$sdist"
+TWINE_USERNAME=__token__ TWINE_PASSWORD="$pypi_token" \
+    "$release_python" -m twine upload "${wheel_files[0]}" "$sdist"
+unset pypi_token
 
 if [[ "$skip_install" == false ]]; then
     printf 'Waiting for the release to become available...\n'
