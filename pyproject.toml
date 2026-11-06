@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "yt-transcript-cli"
-version = "0.1.2"
+version = "0.2.0"
 description = "Fetch YouTube video and playlist transcripts from the command line"
 readme = "README.md"
 license = "MIT"

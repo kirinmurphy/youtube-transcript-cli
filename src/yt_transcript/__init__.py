@@ -1,7 +1,7 @@
 """
 yt-transcript - Fetch YouTube video transcripts.
 """
-__version__ = "0.1.2"
+__version__ = "0.2.0"
 
 from .core import (
     parse_youtube_url,
